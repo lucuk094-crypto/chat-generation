@@ -84,22 +84,32 @@ async function request(url: string): Promise<string> {
         "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1"
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
       },
-      timeout: 10000,
+      timeout: 15000, // Increased to 15s
       maxRedirects: 5,
       validateStatus: (status) => status < 500
     });
+    
+    if (!data || data.length < 100) {
+      throw new Error('Response kosong atau tidak valid dari server');
+    }
+    
     return data;
   } catch (error: any) {
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('Request timeout - website terlalu lama merespons');
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      throw new Error('Koneksi timeout. Website tidak merespons. Coba lagi dalam beberapa saat.');
     }
     if (error.response?.status === 403) {
-      throw new Error('Akses ditolak - website mungkin memblokir request');
+      throw new Error('Akses ditolak oleh website. Coba lagi nanti atau gunakan nama HP berbeda.');
     }
     if (error.response?.status === 404) {
-      throw new Error('Halaman tidak ditemukan');
+      throw new Error('Halaman tidak ditemukan. Pastikan nama HP benar.');
+    }
+    if (error.response?.status >= 500) {
+      throw new Error('Server error dari carisinyal.com. Website sedang bermasalah, coba lagi nanti.');
     }
     throw new Error(`Gagal mengakses website: ${error.message}`);
   }
@@ -263,56 +273,88 @@ async function detail(url: string): Promise<PhoneSpecs> {
 }
 
 export async function getPhoneSpecs(query: string): Promise<PhoneSpecs> {
-  try {
-    const results = await search(query);
-    
-    if (!results || results.length === 0) {
-      throw new Error("Ponsel tidak ditemukan");
-    }
+  let lastError: Error | null = null;
+  
+  // Retry up to 2 times
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`Phone Specs attempt ${attempt} for: ${query}`);
+      
+      const results = await search(query);
+      
+      if (!results || results.length === 0) {
+        throw new Error("Ponsel tidak ditemukan");
+      }
 
-    // Prioritize exact matches first
-    let phone = results.find(r => {
-      const title = r.title.toLowerCase();
-      const q = query.toLowerCase();
-      return title.includes(q) && (r.type || "").toLowerCase().includes("ponsel");
-    });
+      // Prioritize exact matches first
+      let phone = results.find(r => {
+        const title = r.title.toLowerCase();
+        const q = query.toLowerCase();
+        return title.includes(q) && (r.type || "").toLowerCase().includes("ponsel");
+      });
 
-    // If no exact match, try any phone type
-    if (!phone) {
-      phone = results.find(r => (r.type || "").toLowerCase().includes("ponsel"));
-    }
+      // If no exact match, try any phone type
+      if (!phone) {
+        phone = results.find(r => (r.type || "").toLowerCase().includes("ponsel"));
+      }
 
-    // If still no match, take first result with valid URL
-    if (!phone) {
-      phone = results.find(r => r.url && r.url.includes('carisinyal.com'));
-    }
+      // If still no match, take first result with valid URL
+      if (!phone) {
+        phone = results.find(r => r.url && r.url.includes('carisinyal.com'));
+      }
 
-    // Last resort: take first result
-    if (!phone) {
-      phone = results[0];
-    }
-    
-    if (!phone || !phone.url) {
-      throw new Error(`URL ponsel tidak valid. Hasil pencarian: ${results.length} item ditemukan tapi tidak ada URL valid.`);
-    }
+      // Last resort: take first result
+      if (!phone) {
+        phone = results[0];
+      }
+      
+      if (!phone || !phone.url) {
+        throw new Error(`URL ponsel tidak valid. Hasil: ${results.length} item, tapi tidak ada URL.`);
+      }
 
-    const data = await detail(phone.url);
-    return data;
+      const data = await detail(phone.url);
+      
+      // Validate data
+      if (!data.title || data.title.length < 3) {
+        throw new Error('Data ponsel tidak lengkap atau invalid');
+      }
+      
+      console.log(`Phone Specs success: ${data.title}`);
+      return data;
 
-  } catch (error: any) {
-    console.error('Failed to get phone specs:', error);
-    
-    // Provide helpful error messages
-    let errorMsg = error.message || 'Failed to get phone specs';
-    
-    if (errorMsg.includes('timeout')) {
-      errorMsg = 'Server terlalu lama merespons. Coba lagi atau gunakan nama HP yang lebih umum.';
-    } else if (errorMsg.includes('403') || errorMsg.includes('ditolak')) {
-      errorMsg = 'Akses ke database HP diblokir sementara. Coba beberapa saat lagi.';
-    } else if (errorMsg.includes('tidak ditemukan')) {
-      errorMsg += ' Contoh pencarian yang benar: "iPhone 15", "Samsung S24", "Redmi Note 13"';
+    } catch (error: any) {
+      console.error(`Phone Specs attempt ${attempt} failed:`, error.message);
+      lastError = error;
+      
+      // Don't retry for these errors
+      if (error.message.includes('tidak ditemukan') || 
+          error.message.includes('403') ||
+          error.message.includes('404')) {
+        break;
+      }
+      
+      // Wait before retry
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
-    
-    throw new Error(errorMsg);
   }
+  
+  // All attempts failed
+  let errorMsg = lastError?.message || 'Gagal mengambil spesifikasi ponsel';
+  
+  // Provide helpful error messages
+  if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+    errorMsg = 'Website terlalu lama merespons setelah beberapa percobaan. Coba lagi nanti atau gunakan nama HP yang lebih umum (contoh: "Samsung S24", "iPhone 15").';
+  } else if (errorMsg.includes('403') || errorMsg.includes('ditolak')) {
+    errorMsg = 'Akses ke database HP diblokir sementara. Ini masalah dari website sumber (carisinyal.com). Coba:\n• Tunggu 5-10 menit\n• Gunakan nama HP berbeda\n• Coba lagi nanti';
+  } else if (errorMsg.includes('tidak ditemukan')) {
+    errorMsg += '\n\n💡 Tips:\n• Gunakan nama lengkap: "Samsung Galaxy S24" bukan "S24"\n• Sertakan brand: "iPhone 15 Pro", "Xiaomi 14"\n• Contoh yang benar: "OPPO Reno 11", "Vivo V30", "Realme 12"';
+  } else if (errorMsg.includes('Response kosong')) {
+    errorMsg = 'Website sumber tidak memberikan data valid. Ini masalah dari carisinyal.com, bukan dari aplikasi. Coba lagi dalam beberapa menit.';
+  } else if (errorMsg.includes('Server error')) {
+    errorMsg += '\n\nWebsite carisinyal.com sedang down. Tunggu beberapa menit dan coba lagi.';
+  }
+  
+  throw new Error(errorMsg);
 }
