@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+    <h2>PWA Icon Generator</h2>
+    <p>Upload your logo/image to generate all required icon sizes</p>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <br><br>
+    <div id="output"></div>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const output = document.getElementById('output');
+                    output.innerHTML = '<h3>Generated Icons (Right-click → Save as):</h3>';
+                    
+                    sizes.forEach(size => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Draw black background
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(0, 0, size, size);
+                        
+                        // Draw image centered
+                        const scale = Math.min(size / img.width, size / img.height) * 0.8;
+                        const w = img.width * scale;
+                        const h = img.height * scale;
+                        const x = (size - w) / 2;
+                        const y = (size - h) / 2;
+                        
+                        ctx.drawImage(img, x, y, w, h);
+                        
+                        const link = document.createElement('a');
+                        link.download = `icon-${size}x${size}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.textContent = `icon-${size}x${size}.png`;
+                        link.style.display = 'block';
+                        link.style.margin = '5px';
+                        output.appendChild(link);
+                    });
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
