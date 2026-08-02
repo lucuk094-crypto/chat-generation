@@ -26,7 +26,6 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['@napi-rs/canvas'],
-  output: 'standalone',
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
