@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import axios from 'axios';
+import ffmpegPath from 'ffmpeg-static';
 
 const execFileAsync = promisify(execFile);
 
@@ -281,7 +282,7 @@ async function encodeVideo(concatPath: string, outputPath: string, config: any) 
     outputPath
   ];
 
-  await execFileAsync("ffmpeg", args, {
+  await execFileAsync(ffmpegPath!, args, {
     maxBuffer: 1024 * 1024 * 10
   });
 }

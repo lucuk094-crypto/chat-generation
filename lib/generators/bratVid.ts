@@ -6,6 +6,7 @@ import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
+import ffmpegPath from 'ffmpeg-static';
 
 const execFileAsync = promisify(execFile);
 
@@ -295,7 +296,7 @@ export async function generateBratVideo({
   const outPath = path.join(tmpDir, `output.${ext}`);
 
   if (format === 'gif') {
-    await execFileAsync('ffmpeg', [
+    await execFileAsync(ffmpegPath!, [
       '-y',
       '-f', 'concat', '-safe', '0', '-i', concatPath,
       '-vf', 'fps=10,scale=1000:1000:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64[p];[s1][p]paletteuse=dither=bayer',
@@ -303,7 +304,7 @@ export async function generateBratVideo({
       outPath
     ]);
   } else {
-    await execFileAsync('ffmpeg', [
+    await execFileAsync(ffmpegPath!, [
       '-y',
       '-f', 'concat', '-safe', '0', '-i', concatPath,
       '-vf', 'scale=1000:1000',
