@@ -25,7 +25,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: 'standalone',
   serverExternalPackages: ['@napi-rs/canvas'],
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
