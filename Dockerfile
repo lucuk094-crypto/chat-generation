@@ -1,5 +1,5 @@
-# Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine AS base
+# Use Node.js 22 Alpine (required by some dependencies)
+FROM node:22-alpine AS base
 
 # Install FFmpeg and build dependencies
 FROM base AS deps
@@ -15,7 +15,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install ALL dependencies (including devDependencies for build)
 RUN npm ci
 
 # Build stage
