@@ -1,0 +1,6 @@
+{
+  "name": "Canvas Image Generator",
+  "description": "Generate TikTok, IG Story, WhatsApp, and Kompas layouts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
