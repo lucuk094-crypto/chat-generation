@@ -107,7 +107,10 @@ async function request(url: string): Promise<string> {
 
 async function search(keyword: string): Promise<SearchResult[]> {
   try {
-    const html = await request(`https://carisinyal.com/?s=${encodeURIComponent(keyword)}`);
+    // Normalize search query: lowercase, remove extra spaces
+    const normalizedKeyword = keyword.toLowerCase().trim().replace(/\s+/g, ' ');
+    
+    const html = await request(`https://carisinyal.com/?s=${encodeURIComponent(normalizedKeyword)}`);
     const $ = cheerio.load(html);
     const result: SearchResult[] = [];
 
@@ -115,15 +118,42 @@ async function search(keyword: string): Promise<SearchResult[]> {
       const title = $(el).find(".oxy-post-title").text().trim();
       if (!title) return;
       
+      const url = $(el).find(".oxy-post-title a").attr("href") 
+                || $(el).find("a.oxy-post-title").attr("href") 
+                || "";
+      
       result.push({
         title,
         type: $(el).find(".oxy-post-meta").text().trim(),
-        url: $(el).find(".oxy-post-title").attr("href") || ""
+        url
       });
     });
 
+    // If no results, try alternative selectors
     if (result.length === 0) {
-      throw new Error(`Ponsel "${keyword}" tidak ditemukan. Coba gunakan kata kunci yang lebih spesifik.`);
+      $("article, .post, .search-result").each((_, el) => {
+        const title = $(el).find("h2, h3, .title").text().trim();
+        const url = $(el).find("a").first().attr("href") || "";
+        
+        if (title && url && url.includes('carisinyal.com')) {
+          result.push({
+            title,
+            type: "ponsel",
+            url
+          });
+        }
+      });
+    }
+
+    if (result.length === 0) {
+      // Try fuzzy search suggestions
+      const suggestions = [
+        `Coba: "${keyword} spesifikasi"`,
+        `Coba: "${keyword.split(' ')[0]}" (brand saja)`,
+        `Coba: Model lengkap (contoh: "Samsung Galaxy S23" bukan "S23")`
+      ].join(', ');
+      
+      throw new Error(`Ponsel "${keyword}" tidak ditemukan. ${suggestions}`);
     }
 
     return result;
@@ -240,10 +270,30 @@ export async function getPhoneSpecs(query: string): Promise<PhoneSpecs> {
       throw new Error("Ponsel tidak ditemukan");
     }
 
-    const phone = results.find(r => (r.type || "").toLowerCase().includes("ponsel")) || results[0];
+    // Prioritize exact matches first
+    let phone = results.find(r => {
+      const title = r.title.toLowerCase();
+      const q = query.toLowerCase();
+      return title.includes(q) && (r.type || "").toLowerCase().includes("ponsel");
+    });
+
+    // If no exact match, try any phone type
+    if (!phone) {
+      phone = results.find(r => (r.type || "").toLowerCase().includes("ponsel"));
+    }
+
+    // If still no match, take first result with valid URL
+    if (!phone) {
+      phone = results.find(r => r.url && r.url.includes('carisinyal.com'));
+    }
+
+    // Last resort: take first result
+    if (!phone) {
+      phone = results[0];
+    }
     
     if (!phone || !phone.url) {
-      throw new Error("URL ponsel tidak valid");
+      throw new Error(`URL ponsel tidak valid. Hasil pencarian: ${results.length} item ditemukan tapi tidak ada URL valid.`);
     }
 
     const data = await detail(phone.url);
@@ -251,6 +301,18 @@ export async function getPhoneSpecs(query: string): Promise<PhoneSpecs> {
 
   } catch (error: any) {
     console.error('Failed to get phone specs:', error);
-    throw new Error(error.message || 'Failed to get phone specs');
+    
+    // Provide helpful error messages
+    let errorMsg = error.message || 'Failed to get phone specs';
+    
+    if (errorMsg.includes('timeout')) {
+      errorMsg = 'Server terlalu lama merespons. Coba lagi atau gunakan nama HP yang lebih umum.';
+    } else if (errorMsg.includes('403') || errorMsg.includes('ditolak')) {
+      errorMsg = 'Akses ke database HP diblokir sementara. Coba beberapa saat lagi.';
+    } else if (errorMsg.includes('tidak ditemukan')) {
+      errorMsg += ' Contoh pencarian yang benar: "iPhone 15", "Samsung S24", "Redmi Note 13"';
+    }
+    
+    throw new Error(errorMsg);
   }
 }

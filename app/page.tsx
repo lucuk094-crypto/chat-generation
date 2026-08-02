@@ -693,15 +693,21 @@ export default function Home() {
               <div className="flex flex-col gap-5 animate-in fade-in duration-300">
                 <InputField 
                   label="Phone Name" 
-                  placeholder="oppo a3s" 
+                  placeholder="Samsung Galaxy S24" 
                   value={phoneQuery} 
                   onChange={setPhoneQuery} 
                   icon={Type} 
                 />
                 <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-md">
-                  <p className="text-xs text-neutral-400 leading-relaxed">
-                    <span className="text-neutral-300 font-medium">📱 Info:</span> Cari spesifikasi lengkap smartphone dari database carisinyal.com. Masukkan nama HP (contoh: "oppo a3s", "iphone 15 pro", "samsung s24"). Hasil akan menampilkan spesifikasi detail termasuk chipset, kamera, baterai, dll.
+                  <p className="text-xs text-neutral-400 leading-relaxed mb-2">
+                    <span className="text-neutral-300 font-medium">📱 Tips Pencarian:</span>
                   </p>
+                  <ul className="text-xs text-neutral-400 space-y-1 ml-4">
+                    <li>✓ Gunakan nama lengkap: "Samsung Galaxy S24" (bukan "S24")</li>
+                    <li>✓ Sertakan brand: "iPhone 15 Pro", "Redmi Note 13"</li>
+                    <li>✓ Huruf besar/kecil tidak masalah</li>
+                    <li>✓ Contoh: "Xiaomi 14", "OPPO Reno 11", "Vivo V30"</li>
+                  </ul>
                 </div>
                 <GenerateButton
                   loading={loading}
