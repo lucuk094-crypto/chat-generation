@@ -1,6 +1,7 @@
 # 🎨 Fake Chat & Canvas Generator
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://fake-chat-generation-phi.vercel.app/)
+[![Deploy on Railway](https://img.shields.io/badge/Deploy%20on-Railway-blueviolet)](https://railway.app/new/template)
 [![Next.js](https://img.shields.io/badge/Next.js-15.4-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2-blue)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
@@ -8,6 +9,8 @@
 Website generator untuk membuat fake chat, fake profile, meme canvas, dan berbagai konten kreatif lainnya dengan mudah dan cepat.
 
 🚀 **Live Demo**: [https://fake-chat-generation-phi.vercel.app/](https://fake-chat-generation-phi.vercel.app/)
+
+⚠️ **Note**: Fitur video (BratVid) membutuhkan FFmpeg. Untuk hasil optimal, deploy ke Railway. [Lihat panduan →](RAILWAY_DEPLOY.md)
 
 ---
 
@@ -106,6 +109,43 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 npm run build
 npm start
 ```
+
+---
+
+## 🚀 Deployment
+
+### Deploy ke Railway (Recommended untuk video features)
+
+Railway menyediakan environment lengkap dengan FFmpeg support untuk fitur BratVid.
+
+**Quick Deploy:**
+1. Fork/clone repository ini
+2. Buka [railway.app](https://railway.app)
+3. New Project → Deploy from GitLab
+4. Pilih repository ini
+5. Railway akan auto-detect Dockerfile dan deploy!
+
+📖 **Panduan lengkap**: [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md)
+
+**Keuntungan Railway:**
+- ✅ FFmpeg pre-installed via Docker
+- ✅ No timeout limits untuk video processing
+- ✅ Auto-deploy dari GitLab
+- ✅ Free tier: $5 credit/bulan
+- ✅ Better performance untuk BratVid features
+
+### Deploy ke Vercel (Untuk fitur non-video)
+
+Vercel cocok untuk fitur-fitur tanpa video processing:
+
+```bash
+npm install -g vercel
+vercel --prod
+```
+
+⚠️ **Limitasi Vercel:**
+- BratVid, BratVid Gojo, BratVid Vermeil **tidak akan berfungsi** (FFmpeg tidak tersedia)
+- Fitur lainnya (28 - 3 = 25 fitur) akan berfungsi normal
 
 ---
 
