@@ -1,30 +1,62 @@
 # Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
-# Install FFmpeg and other required dependencies
+# Install FFmpeg and build dependencies
+FROM base AS deps
 RUN apk add --no-cache \
     ffmpeg \
+    libc6-compat \
     python3 \
     make \
     g++
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
-# Copy application files
+# Build stage
+FROM base AS builder
+RUN apk add --no-cache ffmpeg libc6-compat
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build Next.js application
+# Build Next.js
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Expose port (Railway will assign PORT env variable)
+# Production stage
+FROM base AS runner
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy necessary files
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
+
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
