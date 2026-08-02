@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { generateBratGojoVideo } from '../../../../lib/generators/bratGojoVid';
 
+// Set max duration for video generation
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -17,7 +20,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ image: dataUrl });
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: error.message || 'Failed to generate video' }, { status: 500 });
+    console.error('BratGojoVid Error:', error);
+    const errorMessage = error.message || 'Failed to generate video';
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: error.stderr || error.stdout || 'No additional details'
+    }, { status: 500 });
   }
 }

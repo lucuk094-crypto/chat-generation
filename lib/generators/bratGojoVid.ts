@@ -7,9 +7,11 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
 import { existsSync } from 'fs';
-import ffmpegPath from 'ffmpeg-static';
 
 const execFileAsync = promisify(execFile);
+
+// Use system ffmpeg (installed via Dockerfile in Railway)
+const ffmpegPath = 'ffmpeg';
 
 const BRAT_IMAGE_URL = "https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Brat/Gojo.jpeg";
 const BRAT_FONT_URL = "https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Brat/Poppins.ttf";
@@ -277,7 +279,7 @@ async function encodeVideo(concatPath: string, outputPath: string, config: any) 
     outputPath
   ];
 
-  await execFileAsync(ffmpegPath!, args, {
+  await execFileAsync(ffmpegPath, args, {
     maxBuffer: 1024 * 1024 * 10
   });
 }
