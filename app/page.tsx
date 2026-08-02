@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Upload, Download, MessageCircle, Clock, Type, X } from 'lucide-react';
 import Image from 'next/image';
+import InstallPWA from '../components/InstallPWA';
 
 function InputField({ label, value, onChange, placeholder, icon: Icon }: any) {
   return (
@@ -1203,6 +1204,9 @@ $ status
           </div>
         </div>
       )}
+
+      {/* PWA Install Button & Popup */}
+      <InstallPWA />
     </main>
   );
 }
